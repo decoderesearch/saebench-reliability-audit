@@ -63,7 +63,8 @@ python -m saebench_audit.synthetic.run_eval --variation v1 --seed 1234
 python -m saebench_audit.synthetic.run_eval --seed 1234 --paper-fixture v1_seed_1234
 
 # 3. snapshot evals (Section 5) — assumes SAEs already trained, e.g. via
-#    saebench_audit.training.train_btk_snapshots / train_sampled_matryoshka.
+#    saebench_audit.training.train_cross_arch / train_sampled_matryoshka, which
+#    write inference-mode SAE snapshots under <output-path>/snapshots/.
 python -m saebench_audit.runners.snapshots --snapshots-root path/to/snapshots
 ```
 

@@ -10,9 +10,9 @@ Usage:
     python -m saebench_audit.training.train_cross_arch --variant btk --k 50
     python -m saebench_audit.training.train_cross_arch --variant matryoshka --k 100
 
-This script delegates to SAELens's training runner and saves snapshots through
-SAELens's ``n_checkpoints`` mechanism. The paper's exact (irregular) snapshot
-schedule is approximated by 28 evenly-spaced checkpoints.
+This script delegates to SAELens's training runner. Intermediate SAEs are saved
+as snapshots on the paper's exact (irregular) schedule -- 28 snapshots, dense
+early in training and sparser later.
 """
 
 from __future__ import annotations
@@ -31,14 +31,31 @@ from saebench_audit.training.common import (
     D_IN,
     D_SAE,
     TrainingResult,
+    build_snapshots,
     make_runner_config,
     run_training,
 )
 
 TRAINING_TOKENS_DEFAULT = 1_500_000_000
-N_CHECKPOINTS_DEFAULT = 28
 
 Variant = Literal["btk", "matryoshka"]
+
+
+def _snapshot_token_amounts(training_tokens: int) -> list[int]:
+    """Token counts at which the cross-architecture panel saves a snapshot.
+
+    The schedule is dense early in training and sparser later: 10M and 25M
+    tokens, then every 50M up to 1B, then every 100M up to 1.5B. Combined with
+    the implicit step-1 snapshot this is the 28-snapshot schedule the paper
+    reports for this panel.
+
+    Amounts past ``training_tokens`` are dropped so shorter runs (e.g. tests)
+    still produce a valid schedule.
+    """
+    amounts = [10_000_000, 25_000_000]
+    amounts += list(range(50_000_000, 1_000_000_001, 50_000_000))
+    amounts += list(range(1_100_000_000, 1_500_000_001, 100_000_000))
+    return [tokens for tokens in amounts if tokens <= training_tokens]
 
 
 def train_cross_arch(
@@ -48,7 +65,6 @@ def train_cross_arch(
     output_path: str,
     seed: int = 0,
     training_tokens: int = TRAINING_TOKENS_DEFAULT,
-    n_checkpoints: int = N_CHECKPOINTS_DEFAULT,
     wandb_project: str | None = None,
     wandb_entity: str | None = None,
 ) -> TrainingResult:
@@ -80,14 +96,14 @@ def train_cross_arch(
     cfg = make_runner_config(
         sae_cfg=sae_cfg,
         training_tokens=training_tokens,
-        n_checkpoints=n_checkpoints,
         seed=seed,
         output_path=output_path,
         run_name=run_name,
         wandb_project=wandb_project,
         wandb_entity=wandb_entity,
     )
-    return run_training(cfg, override_sae=override_sae)
+    snapshots = build_snapshots(output_path, _snapshot_token_amounts(training_tokens))
+    return run_training(cfg, snapshots=snapshots, override_sae=override_sae)
 
 
 def main() -> None:
@@ -97,7 +113,6 @@ def main() -> None:
     parser.add_argument("--output-path", required=True)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--training-tokens", type=int, default=TRAINING_TOKENS_DEFAULT)
-    parser.add_argument("--n-checkpoints", type=int, default=N_CHECKPOINTS_DEFAULT)
     parser.add_argument("--wandb-project", default=None)
     parser.add_argument("--wandb-entity", default=None)
     args = parser.parse_args()
@@ -108,7 +123,6 @@ def main() -> None:
         output_path=args.output_path,
         seed=args.seed,
         training_tokens=args.training_tokens,
-        n_checkpoints=args.n_checkpoints,
         wandb_project=args.wandb_project,
         wandb_entity=args.wandb_entity,
     )

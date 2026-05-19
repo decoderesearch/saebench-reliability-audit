@@ -8,6 +8,10 @@ number of inner-width prefixes sampled per training step from a
 Usage:
     python -m saebench_audit.training.train_sampled_matryoshka --n-levels 1
     python -m saebench_audit.training.train_sampled_matryoshka --n-levels 4
+
+Intermediate SAEs are saved as snapshots every 30M tokens; combined with the
+implicit step-1 snapshot this is the 11-snapshot schedule the paper reports for
+this panel.
 """
 
 from __future__ import annotations
@@ -23,14 +27,27 @@ from saebench_audit.training.common import (
     D_IN,
     D_SAE,
     TrainingResult,
+    build_snapshots,
     make_runner_config,
     run_training,
 )
 
 TRAINING_TOKENS_DEFAULT = 300_000_000
-N_CHECKPOINTS_DEFAULT = 10
 K_DEFAULT = 150
 MIN_MATRYOSHKA_WIDTH_DEFAULT = 64
+SNAPSHOT_TOKEN_INTERVAL = 30_000_000
+
+
+def _snapshot_token_amounts(training_tokens: int) -> list[int]:
+    """Token counts at which the sampled-Matryoshka panel saves a snapshot.
+
+    A snapshot every 30M tokens. Combined with the implicit step-1 snapshot
+    this is the 11-snapshot schedule the paper reports for the default
+    300M-token run.
+    """
+    return list(
+        range(SNAPSHOT_TOKEN_INTERVAL, training_tokens + 1, SNAPSHOT_TOKEN_INTERVAL)
+    )
 
 
 def train_sampled_matryoshka(
@@ -40,7 +57,6 @@ def train_sampled_matryoshka(
     k: int = K_DEFAULT,
     seed: int = 0,
     training_tokens: int = TRAINING_TOKENS_DEFAULT,
-    n_checkpoints: int = N_CHECKPOINTS_DEFAULT,
     min_matryoshka_width: int = MIN_MATRYOSHKA_WIDTH_DEFAULT,
     wandb_project: str | None = None,
     wandb_entity: str | None = None,
@@ -64,14 +80,14 @@ def train_sampled_matryoshka(
     cfg = make_runner_config(
         sae_cfg=matryoshka_cfg,
         training_tokens=training_tokens,
-        n_checkpoints=n_checkpoints,
         seed=seed,
         output_path=output_path,
         run_name=run_name,
         wandb_project=wandb_project,
         wandb_entity=wandb_entity,
     )
-    return run_training(cfg, override_sae=override_sae)
+    snapshots = build_snapshots(output_path, _snapshot_token_amounts(training_tokens))
+    return run_training(cfg, snapshots=snapshots, override_sae=override_sae)
 
 
 def main() -> None:
@@ -81,7 +97,6 @@ def main() -> None:
     parser.add_argument("--k", type=int, default=K_DEFAULT)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--training-tokens", type=int, default=TRAINING_TOKENS_DEFAULT)
-    parser.add_argument("--n-checkpoints", type=int, default=N_CHECKPOINTS_DEFAULT)
     parser.add_argument(
         "--min-matryoshka-width", type=int, default=MIN_MATRYOSHKA_WIDTH_DEFAULT
     )
@@ -95,7 +110,6 @@ def main() -> None:
         k=args.k,
         seed=args.seed,
         training_tokens=args.training_tokens,
-        n_checkpoints=args.n_checkpoints,
         min_matryoshka_width=args.min_matryoshka_width,
         wandb_project=args.wandb_project,
         wandb_entity=args.wandb_entity,

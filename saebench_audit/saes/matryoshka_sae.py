@@ -15,9 +15,9 @@ The reconstruction loss is the sum of BatchTopK reconstruction MSEs over the
 selected prefixes (and the full SAE if ``include_outer_loss=True``). The
 top-K dead-feature aux loss is split across the same prefixes.
 
-Trimmed from sae-rethink's XMatryoshka* implementations: the paper does not use
-the floating-decoder, frequency-sorted, encoder-pinning, or probability-based
-prefix-skipping variants, so they are not ported here.
+This implementation is deliberately minimal: the paper does not use the
+floating-decoder, frequency-sorted, encoder-pinning, or probability-based
+prefix-skipping Matryoshka variants, so they are not included here.
 """
 
 from __future__ import annotations
