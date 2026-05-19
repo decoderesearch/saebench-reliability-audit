@@ -75,3 +75,19 @@ uv run ruff check
 uv run pyright
 uv run pytest
 ```
+
+## Citation
+
+If you use this in your work, please cite the following:
+
+```bibtex
+@misc{chanin2026saebenchmarks,
+      title={Are Sparse Autoencoder Benchmarks Reliable?}, 
+      author={David Chanin},
+      year={2026},
+      eprint={2605.18229},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2605.18229}, 
+}
+```
