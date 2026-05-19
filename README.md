@@ -1,6 +1,6 @@
-# How Reliable Are Sparse Autoencoder Benchmarks?
+# Are Sparse Autoencoder Benchmarks Reliable?
 
-Code accompanying the paper *How Reliable Are Sparse Autoencoder Benchmarks?*
+Code accompanying the paper *[Are Sparse Autoencoder Benchmarks Reliable?](https://arxiv.org/abs/2605.18229)*
 
 The repo contains the code for the three audit lenses in the paper:
 
